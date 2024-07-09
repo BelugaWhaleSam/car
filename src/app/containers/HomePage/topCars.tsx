@@ -11,7 +11,9 @@ import carService from "../../services/carService";
 import { Dispatch } from "@reduxjs/toolkit";
 import { setTopCars } from "./slice";
 import { GetCars_cars } from "../../services/carService/__generated__/GetCars";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { createSelector } from "reselect";
+import { makeSelectTopCars } from "./selectors";
 
 const TopCarsContainer = styled.div`
   ${tw`
@@ -64,10 +66,15 @@ const actionDispatch = (dispatch: Dispatch) => ({
   setTopCars: (cars: GetCars_cars[])=>dispatch(setTopCars(cars))
 });
 
+const stateSelector = createSelector(makeSelectTopCars, (topCars) => ({
+  topCars
+}));
+
 export function TopCars() {
   const [current, setCurrent] = useState(0);
   const isMobile = useMediaQuery({ maxWidth: SCREENS.sm });
 
+  const { topCars } = useSelector(stateSelector);
   const { setTopCars } = actionDispatch(useDispatch());
 
   const fetchTopCars = async () => {
@@ -105,20 +112,27 @@ export function TopCars() {
     fetchTopCars();
   },[])
 
-  const cars = [
-    <Car {...testCar} />,
-    <Car {...testCar2} />,
-    <Car {...testCar} />,
-    <Car {...testCar2} />,
-    <Car {...testCar} />,
-  ];
+  const isEmptyTopCars = !topCars || topCars.length === 0;
+  
+  const cars = !isEmptyTopCars && topCars.map((car) => <Car {...car} thumbnailSrc={car.thumbnailUrl} />) || []
+
+  // const cars = [
+  //   <Car {...testCar} />,
+  //   <Car {...testCar2} />,
+  //   <Car {...testCar} />,
+  //   <Car {...testCar2} />,
+  //   <Car {...testCar} />,
+  // ];
 
   const numberOfDots = isMobile ? cars.length : Math.ceil(cars.length /3)
+
+  if(isEmptyTopCars) return null;
 
   return (
     <TopCarsContainer>
       <Title>Explore Our Top Deals</Title>
-      <CarsContainer>
+      {isEmptyTopCars && <EmptyCars>No Cars to display</EmptyCars>}
+      {!isEmptyTopCars && <CarsContainer>
         <Carousel
           value={current}
           onChange={setCurrent}
@@ -160,7 +174,7 @@ export function TopCars() {
           onChange={setCurrent}
           number={numberOfDots}
         />
-      </CarsContainer>
+      </CarsContainer>}
     </TopCarsContainer>
   );
 }
